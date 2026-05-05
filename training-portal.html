@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>The Peri Peri Shack — Staff Training</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary:    #8B1A1A;
+      --accent:     #C0392B;
+      --dark:       #3D1C02;
+      --dark2:      #2A1201;
+      --cream:      #FDFAF6;
+      --cream2:     #F0EAE0;
+      --text:       #2C1A00;
+      --muted:      #7A6050;
+      --success:    #27AE60;
+      --error:      #C0392B;
+      --border:     #DDD0C0;
+      --shadow:     0 4px 20px rgba(61,28,2,0.12);
+      --sup-color:  #1A4A7A;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--dark); min-height: 100vh; color: var(--text); }
+
+    /* ── SCREENS ── */
+    .screen { display: none; min-height: 100vh; flex-direction: column; }
+    .screen.active { display: flex; }
+
+    /* ── LOADING ── */
+    #loading { position: fixed; inset: 0; background: var(--dark); display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px; z-index: 2000; }
+    .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.15); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: rgba(255,255,255,0.5); font-size: 13px; }
+
+    /* ── TOAST ── */
+    #toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--dark2); color: white; padding: 12px 22px; border-radius: 40px; font-size: 14px; font-weight: 600; z-index: 3000; transition: transform 0.3s ease; white-space: nowrap; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── LOGIN ── */
+    #screen-login { background: linear-gradient(160deg, #2A1201 0%, #3D1C02 50%, #8B1A1A 100%); justify-content: center; align-items: center; padding: 24px; }
+    .login-card { background: white; border-radius: 28px; padding: 36px 30px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,0.5); }
+    .login-logo-wrap { width: 80px; height: 80px; border-radius: 50%; background: var(--primary); margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(139,26,26,0.4); overflow: hidden; }
+    .login-brand { font-family: 'Oswald', sans-serif; font-size: 21px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 2px; line-height: 1.1; }
+    .login-tagline { font-size: 10px; font-weight: 700; color: var(--dark); text-transform: uppercase; letter-spacing: 3px; opacity: 0.45; margin-bottom: 20px; margin-top: 2px; }
+    .pin-display { display: flex; gap: 14px; justify-content: center; margin-bottom: 20px; }
+    .pin-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); background: white; transition: all 0.15s; }
+    .pin-dot.filled { background: var(--primary); border-color: var(--primary); transform: scale(1.1); }
+    .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .pin-btn { padding: 18px; border: none; border-radius: 14px; font-size: 21px; font-weight: 700; cursor: pointer; transition: all 0.12s; background: var(--cream2); color: var(--dark); user-select: none; }
+    .pin-btn:active { transform: scale(0.90); background: var(--primary); color: white; }
+    .pin-btn.delete { font-size: 18px; background: #FFECEC; color: var(--error); }
+    .pin-btn.blank { background: transparent; cursor: default; pointer-events: none; }
+    .login-error { color: var(--error); font-size: 13px; font-weight: 600; margin-top: 14px; min-height: 18px; }
+    .sup-login-link { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+    .sup-login-link button { background: none; border: none; color: var(--sup-color); font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: underline; }
+
+    /* ── SUPERVISOR LOGIN ── */
+    #screen-supervisor-login { background: linear-gradient(160deg, #0D1F35 0%, #1A3A5C 50%, #1A4A7A 100%); justify-content: center; align-items: center; padding: 24px; }
+    .sup-login-card { background: white; border-radius: 28px; padding: 36px 30px; width: 100%; max-width: 360px; text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,0.5); }
+    .sup-badge { width: 70px; height: 70px; border-radius: 50%; background: var(--sup-color); margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 32px; }
+    .sup-login-title { font-family: 'Oswald', sans-serif; font-size: 20px; font-weight: 700; color: var(--sup-color); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .sup-login-sub { font-size: 13px; color: var(--muted); margin-bottom: 22px; }
+    .text-input { width: 100%; padding: 15px 18px; border: 2px solid var(--border); border-radius: 14px; font-size: 16px; color: var(--dark); outline: none; transition: border-color 0.2s; text-align: center; letter-spacing: 1px; }
+    .text-input:focus { border-color: var(--sup-color); }
+    .sup-error { color: var(--error); font-size: 13px; font-weight: 600; margin-top: 12px; min-height: 18px; }
+
+    /* ── BUTTONS ── */
+    .btn { display: block; width: 100%; border: none; border-radius: 14px; font-size: 15px; font-weight: 700; cursor: pointer; padding: 15px 22px; transition: all 0.15s; text-align: center; margin-top: 10px; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; box-shadow: 0 4px 14px rgba(139,26,26,0.3); }
+    .btn-sup { background: linear-gradient(135deg, #1A4A7A, #2563A8); color: white; box-shadow: 0 4px 14px rgba(26,74,122,0.3); margin-top: 14px; }
+    .btn-ghost { background: var(--cream2); color: var(--dark); }
+    .btn-back { background: rgba(255,255,255,0.12); border: none; color: white; width: 36px; height: 36px; border-radius: 10px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    /* ── APP HEADER ── */
+    .app-header { color: white; padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+    .app-header.staff-header   { background: var(--dark); }
+    .app-header.sup-header     { background: #1A3A5C; }
+    .app-header.admin-header   { background: #1C1C1C; }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-icon { font-size: 24px; }
+    .header-title { font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+    .header-sub { font-size: 11px; color: rgba(255,255,255,0.55); margin-top: 1px; }
+    .header-btn { background: rgba(255,255,255,0.1); border: none; color: white; padding: 7px 12px; border-radius: 9px; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+    /* ── PAGE BODY ── */
+    .page-body { padding: 18px; flex: 1; overflow-y: auto; }
+
+    /* ── DASHBOARD ── */
+    #screen-dashboard { background: var(--cream); }
+    .progress-card { background: white; border-radius: 16px; padding: 18px; margin-bottom: 18px; box-shadow: var(--shadow); }
+    .progress-row { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700; color: var(--dark); margin-bottom: 10px; }
+    .progress-count { color: var(--primary); }
+    .progress-bar { height: 9px; background: var(--cream2); border-radius: 9px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); border-radius: 9px; transition: width 0.7s ease; }
+    .section-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+    .video-card { background: white; border-radius: 16px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; cursor: pointer; transition: all 0.18s; border: 2px solid transparent; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .video-card:active { transform: scale(0.97); border-color: var(--primary); }
+    .video-card.done { border-color: #B8DEC6; background: #F0FBF4; }
+    .vc-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; margin-right: 12px; }
+    .vc-icon.pending { background: var(--cream2); }
+    .vc-icon.watched { background: #FFF3CD; }
+    .vc-icon.done    { background: #D4EDDA; }
+    .vc-info { flex: 1; }
+    .vc-title { font-size: 14px; font-weight: 700; color: var(--dark); margin-bottom: 2px; }
+    .vc-meta  { font-size: 12px; color: var(--muted); }
+    .vc-meta.pass { color: var(--success); font-weight: 600; }
+    .vc-chevron { color: var(--muted); font-size: 20px; margin-left: 4px; }
+
+    /* ── VIDEO SCREEN ── */
+    #screen-video { background: var(--dark); }
+    .video-topbar { background: var(--dark); padding: 10px 14px; display: flex; align-items: center; gap: 10px; }
+    .video-topbar-title { font-size: 14px; font-weight: 700; color: white; flex: 1; }
+    .yt-wrapper { position: relative; width: 100%; padding-top: 56.25%; background: #000; }
+    .yt-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0; }
+    .video-lower { background: var(--cream); flex: 1; padding: 18px; overflow-y: auto; }
+    .video-desc-text { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 18px; }
+    .action-card { background: white; border-radius: 16px; padding: 20px; box-shadow: var(--shadow); text-align: center; }
+    .action-card p { font-size: 14px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+    .done-badge { display: flex; align-items: center; gap: 10px; background: #EAF9F0; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; text-align: left; }
+    .done-badge span { font-size: 13px; font-weight: 700; color: #1A7A44; }
+
+    /* ── QUIZ ── */
+    #screen-quiz { background: var(--cream); }
+    .quiz-body { padding: 18px; flex: 1; overflow-y: auto; }
+    .quiz-dots { display: flex; gap: 6px; margin-bottom: 18px; }
+    .quiz-dot { flex: 1; height: 4px; border-radius: 4px; background: var(--cream2); transition: background 0.2s; }
+    .quiz-dot.answered { background: var(--primary); }
+    .q-card { background: white; border-radius: 18px; padding: 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
+    .q-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
+    .q-text { font-size: 16px; font-weight: 700; color: var(--dark); line-height: 1.45; }
+    .options { display: flex; flex-direction: column; gap: 9px; }
+    .opt { background: white; border: 2px solid var(--border); border-radius: 12px; padding: 13px 15px; cursor: pointer; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; color: var(--dark); transition: all 0.18s; }
+    .opt:active { transform: scale(0.98); }
+    .opt.selected { border-color: var(--primary); background: #FFF0F2; }
+    .opt.correct  { border-color: var(--success); background: #EAF9F0; }
+    .opt.wrong    { border-color: var(--error); background: #FDECEA; }
+    .opt-letter { width: 32px; height: 32px; border-radius: 9px; background: var(--cream2); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; flex-shrink: 0; transition: all 0.18s; }
+    .selected .opt-letter { background: var(--primary); color: white; }
+    .correct  .opt-letter { background: var(--success); color: white; }
+    .wrong    .opt-letter { background: var(--error); color: white; }
+    .quiz-footer { display: flex; gap: 10px; padding: 14px 18px; background: white; border-top: 1px solid var(--border); }
+    .quiz-footer .btn { margin-top: 0; }
+    .btn-prev { background: var(--cream2); color: var(--dark); width: auto; padding: 14px 18px; flex-shrink: 0; }
+
+    /* ── RESULTS ── */
+    #screen-results { background: var(--cream); justify-content: center; align-items: center; padding: 24px; }
+    .results-card { background: white; border-radius: 26px; padding: 40px 28px; width: 100%; max-width: 380px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.13); }
+    .results-emoji { font-size: 68px; margin-bottom: 14px; line-height: 1; }
+    .results-heading { font-size: 26px; font-weight: 900; margin-bottom: 6px; }
+    .results-heading.pass { color: var(--success); }
+    .results-heading.fail { color: var(--error); }
+    .results-label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+    .results-score { font-size: 62px; font-weight: 900; line-height: 1; margin-bottom: 18px; }
+    .results-score.pass { color: var(--success); }
+    .results-score.fail { color: var(--error); }
+    .results-msg { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+
+    /* ── SUPERVISOR / ADMIN SHARED ── */
+    #screen-supervisor { background: var(--cream); }
+    #screen-admin { background: var(--cream); }
+
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+    .stat-tile { background: white; border-radius: 14px; padding: 14px 8px; text-align: center; box-shadow: var(--shadow); }
+    .stat-num { font-size: 28px; font-weight: 900; color: var(--primary); }
+    .stat-num.sup { color: var(--sup-color); }
+    .stat-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+    /* Location tabs */
+    .loc-tabs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 2px; }
+    .loc-tab { background: white; border: 2px solid var(--border); border-radius: 20px; padding: 7px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; color: var(--muted); transition: all 0.18s; flex-shrink: 0; }
+    .loc-tab.active { background: var(--dark); color: white; border-color: var(--dark); }
+
+    /* Progress table */
+    .table-wrap { background: white; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); margin-bottom: 18px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th { background: var(--dark); color: white; padding: 11px 12px; text-align: left; font-weight: 600; white-space: nowrap; }
+    thead th.sup-head { background: #1A3A5C; }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid #F2EDE8; color: var(--dark); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--cream); }
+
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .badge-pass    { background: #D4EDDA; color: #155724; }
+    .badge-fail    { background: #F8D7DA; color: #721C24; }
+    .badge-pending { background: #FFF3CD; color: #856404; }
+    .badge-watched { background: #D1ECF1; color: #0C5460; }
+
+    .reset-btn { background: none; border: 1px solid #CCC; border-radius: 6px; padding: 2px 7px; font-size: 10px; font-weight: 700; color: #888; cursor: pointer; margin-left: 5px; transition: all 0.15s; white-space: nowrap; }
+    .reset-btn:hover { background: #FFF3CD; border-color: #856404; color: #856404; }
+
+    /* Add staff form */
+    .add-staff-card { background: white; border-radius: 16px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 18px; }
+    .form-label { font-size: 12px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 5px; }
+    .form-input { width: 100%; padding: 12px 14px; border: 2px solid var(--border); border-radius: 11px; font-size: 14px; color: var(--dark); outline: none; transition: border-color 0.2s; margin-bottom: 12px; }
+    .form-input:focus { border-color: var(--primary); }
+    .form-select { width: 100%; padding: 12px 14px; border: 2px solid var(--border); border-radius: 11px; font-size: 14px; color: var(--dark); outline: none; background: white; margin-bottom: 12px; }
+    .form-select:focus { border-color: var(--primary); }
+
+    .hidden { display: none !important; }
+    @media (max-width: 380px) {
+      .login-card, .sup-login-card { padding: 28px 16px; }
+      .pin-btn { padding: 15px; font-size: 19px; }
+      .results-score { font-size: 52px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div style="width:68px;height:68px;border-radius:50%;background:#8B1A1A;display:flex;align-items:center;justify-content:center;font-size:38px">🐓</div>
+  <div style="font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;color:white;letter-spacing:2px;text-transform:uppercase">The Peri Peri Shack</div>
+  <div class="spinner"></div>
+  <div class="loading-text">Loading…</div>
+</div>
+<div id="toast"></div>
+
+<!-- ════════ STAFF LOGIN ════════ -->
+<div class="screen" id="screen-login">
+  <div class="login-card">
+    <div class="login-logo-wrap">
+      <svg viewBox="0 0 80 80" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+        <!-- Flame base -->
+        <path d="M24 72 Q28 60 22 52 Q30 58 28 48 Q36 56 32 44 Q42 54 38 40 Q48 52 44 40 Q52 54 48 44 Q54 56 52 48 Q58 58 56 52 Q52 60 56 72 Z" fill="#FF6B00" opacity="0.85"/>
+        <!-- Body -->
+        <ellipse cx="40" cy="50" rx="14" ry="11" fill="white"/>
+        <!-- Tail feathers -->
+        <path d="M26 47 Q16 40 20 51 Q24 49 26 47 Z" fill="white"/>
+        <path d="M26 52 Q14 52 19 61 Q24 57 26 52 Z" fill="white"/>
+        <path d="M27 43 Q19 33 22 43 Q24 43 27 43 Z" fill="white"/>
+        <!-- Neck -->
+        <path d="M36 41 Q40 38 44 41 L43 46 Q40 48 37 46 Z" fill="white"/>
+        <!-- Head -->
+        <circle cx="40" cy="34" r="8" fill="white"/>
+        <!-- Comb -->
+        <path d="M35 27 Q36 22 37.5 27 Q39 21 40.5 27 Q42 22 43 27 L43 30 L35 30 Z" fill="#FF3333"/>
+        <!-- Wattle -->
+        <ellipse cx="40" cy="42" rx="2.5" ry="3.5" fill="#FF3333"/>
+        <!-- Beak -->
+        <polygon points="47,33 53,35 47,37" fill="#FFB800"/>
+        <!-- Eye -->
+        <circle cx="43" cy="32" r="2" fill="#1a1a1a"/>
+        <circle cx="43.6" cy="31.4" r="0.6" fill="white"/>
+        <!-- Wing highlight -->
+        <path d="M29 48 Q36 43 46 49 Q37 52 29 48 Z" fill="rgba(200,200,200,0.4)"/>
+        <!-- Legs -->
+        <line x1="36" y1="61" x2="34" y2="69" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="30" y1="69" x2="34" y2="69" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <line x1="37" y1="69" x2="34" y2="69" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <line x1="44" y1="61" x2="43" y2="69" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="39" y1="69" x2="43" y2="69" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <line x1="46" y1="69" x2="43" y2="69" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="login-brand">The Peri Peri Shack</div>
+    <div class="login-tagline">Flame Grilled Chicken</div>
+    <div class="pin-display">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-btn" onclick="pinPress('1')">1</button>
+      <button class="pin-btn" onclick="pinPress('2')">2</button>
+      <button class="pin-btn" onclick="pinPress('3')">3</button>
+      <button class="pin-btn" onclick="pinPress('4')">4</button>
+      <button class="pin-btn" onclick="pinPress('5')">5</button>
+      <button class="pin-btn" onclick="pinPress('6')">6</button>
+      <button class="pin-btn" onclick="pinPress('7')">7</button>
+      <button class="pin-btn" onclick="pinPress('8')">8</button>
+      <button class="pin-btn" onclick="pinPress('9')">9</button>
+      <button class="pin-btn blank"></button>
+      <button class="pin-btn" onclick="pinPress('0')">0</button>
+      <button class="pin-btn delete" onclick="pinDelete()">&#9003;</button>
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <div class="sup-login-link">
+      <button onclick="showScreen('supervisor-login')">Supervisor / Manager Login &#8594;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ SUPERVISOR LOGIN ════════ -->
+<div class="screen" id="screen-supervisor-login">
+  <div class="sup-login-card">
+    <div class="sup-badge">&#128101;</div>
+    <div class="sup-login-title">Supervisor Login</div>
+    <div class="sup-login-sub">Enter your supervisor password</div>
+    <input class="text-input" type="password" id="sup-password" placeholder="Password" autocomplete="off">
+    <div class="sup-error" id="sup-error"></div>
+    <button class="btn btn-sup" onclick="doSupervisorLogin()">Sign In</button>
+    <button class="btn btn-ghost" onclick="showScreen('login')">&#8592; Back</button>
+  </div>
+</div>
+
+<!-- ════════ STAFF DASHBOARD ════════ -->
+<div class="screen" id="screen-dashboard">
+  <div class="app-header staff-header">
+    <div class="header-left">
+      <span class="header-icon"><svg viewBox="0 0 32 32" width="28" height="28" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="16" fill="#8B1A1A"/><path d="M9 27 Q11 22 9 18 Q13 21 12 17 Q15.5 20 14 15 Q18 19 16 14 Q20 18 18 14 Q22 18 20 17 Q22 21 23 27 Z" fill="#FF6B00" opacity="0.9"/><ellipse cx="16" cy="22" rx="6" ry="4.5" fill="white"/><path d="M10 20 Q7 17 8.5 21 L10 20 Z" fill="white"/><path d="M10 22 Q6 22 8 26 L10 23 Z" fill="white"/><path d="M14 17 Q16 15.5 18 17 L17.5 19 Q16 20 14.5 19 Z" fill="white"/><circle cx="16" cy="13" r="3.5" fill="white"/><path d="M13 11 Q13.5 8.5 14.5 11 Q15.5 8.5 16.5 11 Q17.5 8.5 18 11 L18 12.5 L13 12.5 Z" fill="#FF3333"/><ellipse cx="16" cy="17" rx="1.2" ry="1.5" fill="#FF3333"/><polygon points="19,12.5 22,13.5 19,14.5" fill="#FFB800"/><circle cx="17.5" cy="12" r="0.9" fill="#1a1a1a"/><line x1="14.5" y1="26" x2="13.5" y2="30" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="11.5" y1="30" x2="13.5" y2="30" stroke="white" stroke-width="1.2" stroke-linecap="round"/><line x1="15" y1="30" x2="13.5" y2="30" stroke="white" stroke-width="1.2" stroke-linecap="round"/><line x1="18" y1="26" x2="17.5" y2="30" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="15.5" y1="30" x2="17.5" y2="30" stroke="white" stroke-width="1.2" stroke-linecap="round"/><line x1="19.5" y1="30" x2="17.5" y2="30" stroke="white" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+      <div>
+        <div class="header-title">Staff Training</div>
+        <div class="header-sub" id="header-sub">Welcome!</div>
+      </div>
+    </div>
+    <button class="header-btn" onclick="logout()">Sign Out</button>
+  </div>
+  <div class="page-body">
+    <div class="progress-card">
+      <div class="progress-row">
+        <span>Your Progress</span>
+        <span class="progress-count" id="progress-text">0 / 0</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div class="section-label">Training Modules</div>
+    <div id="video-list"></div>
+  </div>
+</div>
+
+<!-- ════════ VIDEO ════════ -->
+<div class="screen" id="screen-video">
+  <div class="video-topbar">
+    <button class="btn-back" onclick="showDashboard()">&#8249;</button>
+    <div class="video-topbar-title" id="vid-title">Video</div>
+  </div>
+  <div class="yt-wrapper"><iframe id="yt-frame" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
+  <div class="video-lower">
+    <div class="video-desc-text" id="vid-desc"></div>
+    <div class="action-card">
+      <div class="done-badge hidden" id="done-banner"><span style="font-size:20px">&#9989;</span><span id="done-banner-text">Training complete!</span></div>
+      <p id="action-prompt">Watch the full video above, then tap the button below to take the quiz.</p>
+      <button class="btn btn-primary" id="quiz-start-btn" onclick="startQuiz()">Take the Quiz &#8594;</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ QUIZ ════════ -->
+<div class="screen" id="screen-quiz">
+  <div class="app-header staff-header">
+    <div class="header-left">
+      <button class="btn-back" onclick="showScreen('video')" style="margin-right:8px">&#8249;</button>
+      <div>
+        <div class="header-title" id="quiz-header-title">Quiz</div>
+        <div class="header-sub" id="quiz-header-sub">Answer all questions</div>
+      </div>
+    </div>
+  </div>
+  <div class="quiz-body">
+    <div class="quiz-dots" id="quiz-dots"></div>
+    <div class="q-card">
+      <div class="q-label" id="q-label">Question 1 of 5</div>
+      <div class="q-text" id="q-text">Loading...</div>
+    </div>
+    <div class="options" id="options"></div>
+  </div>
+  <div class="quiz-footer">
+    <button class="btn btn-prev" id="prev-btn" onclick="quizPrev()">&#8592;</button>
+    <button class="btn btn-primary" id="next-btn" onclick="quizNext()">Next &#8594;</button>
+  </div>
+</div>
+
+<!-- ════════ RESULTS ════════ -->
+<div class="screen" id="screen-results">
+  <div class="results-card">
+    <div class="results-emoji" id="r-emoji">&#127881;</div>
+    <div class="results-heading" id="r-heading">Training Complete!</div>
+    <div class="results-label">Your Score</div>
+    <div class="results-score" id="r-score">90%</div>
+    <div class="results-msg" id="r-msg"></div>
+    <button class="btn btn-primary" onclick="showDashboard()">Back to Training</button>
+    <button class="btn btn-ghost hidden" id="retry-btn" onclick="retryQuiz()">Try Again</button>
+  </div>
+</div>
+
+<!-- ════════ SUPERVISOR DASHBOARD ════════ -->
+<div class="screen" id="screen-supervisor">
+  <div class="app-header sup-header">
+    <div class="header-left">
+      <span class="header-icon">&#128101;</span>
+      <div>
+        <div class="header-title" id="sup-loc-title">Supervisor</div>
+        <div class="header-sub" id="sup-name-sub">Location Dashboard</div>
+      </div>
+    </div>
+    <button class="header-btn" onclick="logout()">Sign Out</button>
+  </div>
+  <div class="page-body">
+    <div class="stats-row">
+      <div class="stat-tile"><div class="stat-num sup" id="sup-stat-staff">--</div><div class="stat-lbl">Staff</div></div>
+      <div class="stat-tile"><div class="stat-num sup" id="sup-stat-done">--</div><div class="stat-lbl">Passed</div></div>
+      <div class="stat-tile"><div class="stat-num sup" id="sup-stat-rate">--</div><div class="stat-lbl">Pass Rate</div></div>
+    </div>
+    <div class="section-label">Staff Progress</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr id="sup-thead"><th>Name</th><th>Role</th></tr></thead>
+        <tbody id="sup-tbody"></tbody>
+      </table>
+    </div>
+    <div class="section-label">Add Staff Member</div>
+    <div class="add-staff-card">
+      <label class="form-label">Full Name</label>
+      <input class="form-input" type="text" id="sup-f-name" placeholder="e.g. James Dlamini">
+      <label class="form-label">Role</label>
+      <input class="form-input" type="text" id="sup-f-role" placeholder="e.g. Kitchen Staff">
+      <label class="form-label">4-Digit PIN</label>
+      <input class="form-input" type="number" id="sup-f-pin" placeholder="e.g. 4821">
+      <button class="btn btn-sup" onclick="supAddEmployee()" style="margin-top:2px">Add to My Location</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ ADMIN (OWNER) DASHBOARD ════════ -->
+<div class="screen" id="screen-admin">
+  <div class="app-header admin-header">
+    <div class="header-left">
+      <span class="header-icon"><svg viewBox="0 0 32 32" width="28" height="28" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="16" fill="#8B1A1A"/><path d="M9 27 Q11 22 9 18 Q13 21 12 17 Q15.5 20 14 15 Q18 19 16 14 Q20 18 18 14 Q22 18 20 17 Q22 21 23 27 Z" fill="#FF6B00" opacity="0.9"/><ellipse cx="16" cy="22" rx="6" ry="4.5" fill="white"/><path d="M10 20 Q7 17 8.5 21 L10 20 Z" fill="white"/><path d="M10 22 Q6 22 8 26 L10 23 Z" fill="white"/><path d="M14 17 Q16 15.5 18 17 L17.5 19 Q16 20 14.5 19 Z" fill="white"/><circle cx="16" cy="13" r="3.5" fill="white"/><path d="M13 11 Q13.5 8.5 14.5 11 Q15.5 8.5 16.5 11 Q17.5 8.5 18 11 L18 12.5 L13 12.5 Z" fill="#FF3333"/><ellipse cx="16" cy="17" rx="1.2" ry="1.5" fill="#FF3333"/><polygon points="19,12.5 22,13.5 19,14.5" fill="#FFB800"/><circle cx="17.5" cy="12" r="0.9" fill="#1a1a1a"/><line x1="14.5" y1="26" x2="13.5" y2="30" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="11.5" y1="30" x2="13.5" y2="30" stroke="white" stroke-width="1.2" stroke-linecap="round"/><line x1="15" y1="30" x2="13.5" y2="30" stroke="white" stroke-width="1.2" stroke-linecap="round"/><line x1="18" y1="26" x2="17.5" y2="30" stroke="white" stroke-width="1.5" stroke-linecap="round"/><line x1="15.5" y1="30" x2="17.5" y2="30" stroke="white" stroke-width="1.2" stroke-linecap="round"/><line x1="19.5" y1="30" x2="17.5" y2="30" stroke="white" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+      <div>
+        <div class="header-title">Owner Dashboard</div>
+        <div class="header-sub">The Peri Peri Shack</div>
+      </div>
+    </div>
+    <button class="header-btn" onclick="logout()">Sign Out</button>
+  </div>
+  <div class="page-body">
+    <div class="section-label">Select Location</div>
+    <div class="loc-tabs" id="loc-tabs"></div>
+
+    <div class="stats-row">
+      <div class="stat-tile"><div class="stat-num" id="admin-stat-staff">--</div><div class="stat-lbl">Staff</div></div>
+      <div class="stat-tile"><div class="stat-num" id="admin-stat-done">--</div><div class="stat-lbl">Passed</div></div>
+      <div class="stat-tile"><div class="stat-num" id="admin-stat-rate">--</div><div class="stat-lbl">Pass Rate</div></div>
+    </div>
+
+    <div class="section-label">Staff Progress</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr id="admin-thead"><th>Name</th><th>Role</th></tr></thead>
+        <tbody id="admin-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-label">Add Staff Member</div>
+    <div class="add-staff-card">
+      <label class="form-label">Full Name</label>
+      <input class="form-input" type="text" id="admin-f-name" placeholder="e.g. James Dlamini">
+      <label class="form-label">Role</label>
+      <input class="form-input" type="text" id="admin-f-role" placeholder="e.g. Kitchen Staff">
+      <label class="form-label">4-Digit PIN</label>
+      <input class="form-input" type="number" id="admin-f-pin" placeholder="e.g. 4821">
+      <label class="form-label">Location</label>
+      <select class="form-select" id="admin-f-loc"></select>
+      <button class="btn btn-primary" onclick="adminAddEmployee()" style="margin-top:2px">Add Staff Member</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  CONFIG — paste your deployed Apps Script URL below
+// ════════════════════════════════════════════════════════════
+const CONFIG = {
+  scriptUrl:     'https://script.google.com/macros/s/AKfycbyExaj3u-kBgea-IWthoxXB1N-NiEhrB-iP-oQpTd7D_iMfjFxWtMJwotfLLaadwyP2dg/exec',
+  adminPin:      '6969',
+  passThreshold: 85
+};
+
+// ════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════
+let S = {
+  // staff
+  pin: '', employee: null, videos: [], currentVideo: null,
+  quiz: null, quizAnswers: [], qIndex: 0,
+  // supervisor
+  supPassword: '', supervisor: null, supData: null,
+  // admin
+  adminLocations: [], selectedLocId: null, adminData: null
+};
+
+// ════════════════════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════════════════════
+window.addEventListener('load', () => { el('loading').style.display = 'none'; showScreen('login'); });
+
+// ════════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════════
+const el  = id => document.getElementById(id);
+const esc = s  => !s ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  el('screen-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function loading(on) { el('loading').style.display = on ? 'flex' : 'none'; }
+
+let _tt;
+function toast(msg, ms = 2800) {
+  const t = el('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+async function api(params) {
+  const url = new URL(CONFIG.scriptUrl);
+  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
+  const r = await fetch(url.toString());
+  return r.json();
+}
+
+// ════════════════════════════════════════════════════════════
+//  STAFF PIN LOGIN
+// ════════════════════════════════════════════════════════════
+let pinVal = '';
+function pinPress(d) {
+  if (pinVal.length >= 4) return;
+  pinVal += d; updateDots();
+  if (pinVal.length === 4) setTimeout(doLogin, 160);
+}
+function pinDelete() { pinVal = pinVal.slice(0, -1); updateDots(); el('login-error').textContent = ''; }
+function updateDots() { for (let i = 0; i < 4; i++) el('dot-' + i).classList.toggle('filled', i < pinVal.length); }
+
+async function doLogin() {
+  loading(true);
+  try {
+    const res = await api({ action: 'login', pin: pinVal });
+    if (res.success) {
+      S.pin = pinVal; S.employee = res.employee; pinVal = ''; updateDots();
+      if (res.employee.isAdmin) await loadAdmin();
+      else await loadDashboard();
+    } else {
+      el('login-error').textContent = res.error || 'Incorrect PIN. Try again.';
+      pinVal = ''; updateDots();
+    }
+  } catch (e) {
+    el('login-error').textContent = 'Connection error — check your internet.';
+    pinVal = ''; updateDots();
+  }
+  loading(false);
+}
+
+// ════════════════════════════════════════════════════════════
+//  SUPERVISOR LOGIN
+// ════════════════════════════════════════════════════════════
+async function doSupervisorLogin() {
+  const pw = el('sup-password').value.trim();
+  if (!pw) { el('sup-error').textContent = 'Please enter your password.'; return; }
+  loading(true);
+  try {
+    const res = await api({ action: 'supervisorLogin', password: pw });
+    if (res.success) {
+      S.supPassword = pw; S.supervisor = res.supervisor;
+      el('sup-password').value = ''; el('sup-error').textContent = '';
+      await loadSupervisor();
+    } else {
+      el('sup-error').textContent = res.error || 'Incorrect password.';
+    }
+  } catch (e) { el('sup-error').textContent = 'Connection error.'; }
+  loading(false);
+}
+
+// ════════════════════════════════════════════════════════════
+//  STAFF DASHBOARD
+// ════════════════════════════════════════════════════════════
+async function loadDashboard() {
+  loading(true);
+  try {
+    const res = await api({ action: 'getVideos', pin: S.pin });
+    if (res.success) { S.videos = res.videos; renderDashboard(); showScreen('dashboard'); }
+    else toast(res.error || 'Could not load training.');
+  } catch (e) { toast('Connection error.'); }
+  loading(false);
+}
+async function showDashboard() { await loadDashboard(); }
+
+function renderDashboard() {
+  el('header-sub').textContent = 'Hello, ' + S.employee.name + ' \uD83D\uDC4B';
+  const vids = S.videos, done = vids.filter(v => v.completed).length;
+  const pct = vids.length ? Math.round((done / vids.length) * 100) : 0;
+  el('progress-text').textContent = done + ' of ' + vids.length + ' completed';
+  el('progress-fill').style.width = pct + '%';
+  const list = el('video-list'); list.innerHTML = '';
+  vids.forEach(v => {
+    let icon, cls, meta, mc = '';
+    if (v.completed)     { icon = '✅'; cls = 'done';    meta = 'Score: ' + v.quizScore + '% — Passed'; mc = 'pass'; }
+    else if (v.watched)  { icon = '▶️'; cls = 'watched'; meta = 'Watched — quiz needed'; }
+    else                 { icon = '🎬'; cls = 'pending'; meta = 'Not started'; }
+    const c = document.createElement('div');
+    c.className = 'video-card' + (v.completed ? ' done' : '');
+    c.innerHTML = '<div class="vc-icon ' + cls + '">' + icon + '</div><div class="vc-info"><div class="vc-title">' + esc(v.title) + '</div><div class="vc-meta ' + mc + '">' + meta + '</div></div><div class="vc-chevron">&#8250;</div>';
+    c.onclick = () => openVideo(v);
+    list.appendChild(c);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  VIDEO
+// ════════════════════════════════════════════════════════════
+function openVideo(v) {
+  S.currentVideo = v;
+  el('vid-title').textContent = v.title;
+  el('vid-desc').textContent = v.description || '';
+  el('yt-frame').src = 'https://www.youtube.com/embed/' + extractYtId(v.youtubeUrl) + '?rel=0&modestbranding=1';
+  const banner = el('done-banner'), prompt = el('action-prompt'), btn = el('quiz-start-btn');
+  if (v.completed) {
+    banner.classList.remove('hidden');
+    el('done-banner-text').textContent = 'Training complete! Your score: ' + v.quizScore + '%';
+    prompt.textContent = "You've already passed this module. You can retake the quiz to improve your score.";
+    btn.textContent = 'Retake Quiz';
+  } else {
+    banner.classList.add('hidden');
+    prompt.textContent = 'Watch the full video above, then tap the button below to take the quiz.';
+    btn.textContent = 'Take the Quiz \u2192';
+  }
+  showScreen('video');
+}
+function extractYtId(url) {
+  if (!url) return '';
+  const m = url.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/)([^#&?]{11})/);
+  return m ? m[1] : url;
+}
+
+// ════════════════════════════════════════════════════════════
+//  QUIZ
+// ════════════════════════════════════════════════════════════
+async function startQuiz() {
+  loading(true);
+  try {
+    await api({ action: 'markWatched', pin: S.pin, videoId: S.currentVideo.id });
+    const res = await api({ action: 'getQuiz', videoId: S.currentVideo.id });
+    loading(false);
+    if (!res.success) { toast('No quiz set up for this video yet.'); return; }
+    S.quiz = res.questions; S.quizAnswers = new Array(res.questions.length).fill(null); S.qIndex = 0;
+    el('quiz-header-title').textContent = S.currentVideo.title;
+    renderQ(); showScreen('quiz');
+  } catch (e) { loading(false); toast('Error loading quiz.'); }
+}
+
+function renderQ() {
+  const q = S.quiz[S.qIndex], total = S.quiz.length;
+  el('q-label').textContent = 'Question ' + (S.qIndex + 1) + ' of ' + total;
+  el('q-text').textContent = q.question;
+  el('quiz-header-sub').textContent = (S.qIndex + 1) + ' of ' + total;
+  const dots = el('quiz-dots'); dots.innerHTML = '';
+  S.quiz.forEach((_, i) => { const d = document.createElement('div'); d.className = 'quiz-dot' + (S.quizAnswers[i] !== null ? ' answered' : ''); dots.appendChild(d); });
+  const opts = el('options'); opts.innerHTML = '';
+  ['A','B','C','D'].forEach(letter => {
+    if (!q.options[letter]) return;
+    const b = document.createElement('button');
+    b.className = 'opt' + (S.quizAnswers[S.qIndex] === letter ? ' selected' : '');
+    b.innerHTML = '<div class="opt-letter">' + letter + '</div><div>' + esc(q.options[letter]) + '</div>';
+    b.onclick = () => { S.quizAnswers[S.qIndex] = letter; renderQ(); };
+    opts.appendChild(b);
+  });
+  el('prev-btn').style.visibility = S.qIndex > 0 ? 'visible' : 'hidden';
+  el('next-btn').textContent = S.qIndex === total - 1 ? 'Submit \u2713' : 'Next \u2192';
+}
+function quizPrev() { if (S.qIndex > 0) { S.qIndex--; renderQ(); } }
+function quizNext() {
+  if (S.quizAnswers[S.qIndex] === null) { toast('Please choose an answer first.'); return; }
+  S.qIndex < S.quiz.length - 1 ? (S.qIndex++, renderQ()) : submitQuiz();
+}
+async function submitQuiz() {
+  let correct = 0;
+  S.quiz.forEach((q, i) => { if (S.quizAnswers[i] === q.correct) correct++; });
+  const score = Math.round((correct / S.quiz.length) * 100), passed = score >= CONFIG.passThreshold;
+  loading(true);
+  try { await api({ action: 'submitQuiz', pin: S.pin, videoId: S.currentVideo.id, score }); } catch (e) {}
+  loading(false);
+  showResults(score, passed);
+}
+function showResults(score, passed) {
+  el('r-emoji').textContent = passed ? '\uD83C\uDF89' : '\uD83D\uDE15';
+  const h = el('r-heading'); h.textContent = passed ? 'Training Complete!' : 'Not Quite There!'; h.className = 'results-heading ' + (passed ? 'pass' : 'fail');
+  const s = el('r-score'); s.textContent = score + '%'; s.className = 'results-score ' + (passed ? 'pass' : 'fail');
+  el('r-msg').textContent = passed
+    ? 'Excellent! You scored ' + score + '% and passed. Head back to continue.'
+    : 'You scored ' + score + '% — you need ' + CONFIG.passThreshold + '% or higher. Watch the video again and try again!';
+  el('retry-btn').classList.toggle('hidden', passed);
+  showScreen('results');
+}
+function retryQuiz() { S.quizAnswers = new Array(S.quiz.length).fill(null); S.qIndex = 0; renderQ(); showScreen('quiz'); }
+
+// ════════════════════════════════════════════════════════════
+//  SUPERVISOR DASHBOARD
+// ════════════════════════════════════════════════════════════
+async function loadSupervisor() {
+  loading(true);
+  try {
+    const res = await api({ action: 'supervisorReport', password: S.supPassword });
+    loading(false);
+    if (!res.success) { toast(res.error || 'Error loading data.'); return; }
+    S.supData = res;
+    renderSupervisor();
+    showScreen('supervisor');
+  } catch (e) { loading(false); toast('Connection error.'); }
+}
+
+function renderSupervisor() {
+  const { employees, videos, progressMap, locationName } = S.supData;
+  el('sup-loc-title').textContent = locationName || 'Location';
+  el('sup-name-sub').textContent = S.supervisor.name;
+  renderProgressTable('sup-thead', 'sup-tbody', employees, videos, progressMap, S.supPassword, true);
+  renderStats('sup-stat-staff', 'sup-stat-done', 'sup-stat-rate', employees, videos, progressMap);
+}
+
+async function supAddEmployee() {
+  const name = el('sup-f-name').value.trim(), role = el('sup-f-role').value.trim(), pin = el('sup-f-pin').value.trim();
+  if (!name || !role || !pin) { toast('Please fill in all fields.'); return; }
+  if (!/^\d{4}$/.test(pin))  { toast('PIN must be exactly 4 digits.'); return; }
+  loading(true);
+  try {
+    const res = await api({ action: 'addEmployee', token: S.supPassword, pin, name, role });
+    loading(false);
+    if (res.success) {
+      toast('Staff member added!');
+      el('sup-f-name').value = ''; el('sup-f-role').value = ''; el('sup-f-pin').value = '';
+      await loadSupervisor();
+    } else toast(res.error || 'Error adding employee.');
+  } catch (e) { loading(false); toast('Connection error.'); }
+}
+
+// ════════════════════════════════════════════════════════════
+//  ADMIN (OWNER) DASHBOARD
+// ════════════════════════════════════════════════════════════
+async function loadAdmin() {
+  loading(true);
+  try {
+    // First get locations list
+    const locRes = await api({ action: 'getLocations', pin: S.pin });
+    if (!locRes.success) { loading(false); toast(locRes.error || 'Error'); return; }
+    S.adminLocations = locRes.locations;
+    // Default to first location
+    S.selectedLocId = locRes.locations.length ? locRes.locations[0].id : null;
+    await loadAdminReport();
+  } catch (e) { loading(false); toast('Connection error.'); }
+}
+
+async function loadAdminReport() {
+  loading(true);
+  try {
+    const res = await api({ action: 'adminReport', pin: S.pin, locationId: S.selectedLocId });
+    loading(false);
+    if (!res.success) { toast(res.error || 'Error'); return; }
+    S.adminData = res;
+    renderAdmin();
+    showScreen('admin');
+  } catch (e) { loading(false); toast('Connection error.'); }
+}
+
+function renderAdmin() {
+  const { employees, videos, progressMap } = S.adminData;
+
+  // Location tabs
+  const tabs = el('loc-tabs'); tabs.innerHTML = '';
+  S.adminLocations.forEach(loc => {
+    const t = document.createElement('button');
+    t.className = 'loc-tab' + (loc.id === S.selectedLocId ? ' active' : '');
+    t.textContent = loc.name;
+    t.onclick = () => { S.selectedLocId = loc.id; loadAdminReport(); };
+    tabs.appendChild(t);
+  });
+
+  renderProgressTable('admin-thead', 'admin-tbody', employees, videos, progressMap, S.pin, false);
+  renderStats('admin-stat-staff', 'admin-stat-done', 'admin-stat-rate', employees, videos, progressMap);
+
+  // Populate location dropdown for add-employee form
+  const sel = el('admin-f-loc'); sel.innerHTML = '';
+  S.adminLocations.forEach(loc => {
+    const o = document.createElement('option');
+    o.value = loc.id; o.textContent = loc.name;
+    if (loc.id === S.selectedLocId) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+async function adminAddEmployee() {
+  const name = el('admin-f-name').value.trim(), role = el('admin-f-role').value.trim();
+  const pin  = el('admin-f-pin').value.trim(),  locId = el('admin-f-loc').value;
+  if (!name || !role || !pin) { toast('Please fill in all fields.'); return; }
+  if (!/^\d{4}$/.test(pin))  { toast('PIN must be exactly 4 digits.'); return; }
+  loading(true);
+  try {
+    const res = await api({ action: 'addEmployee', token: S.pin, pin, name, role, locationId: locId });
+    loading(false);
+    if (res.success) {
+      toast('Staff member added!');
+      el('admin-f-name').value = ''; el('admin-f-role').value = ''; el('admin-f-pin').value = '';
+      await loadAdminReport();
+    } else toast(res.error || 'Error adding employee.');
+  } catch (e) { loading(false); toast('Connection error.'); }
+}
+
+// ════════════════════════════════════════════════════════════
+//  SHARED RENDER HELPERS
+// ════════════════════════════════════════════════════════════
+function renderStats(staffId, doneId, rateId, employees, videos, progressMap) {
+  let passed = 0, quizzes = 0;
+  employees.forEach(emp => {
+    videos.forEach(vid => {
+      const p = progressMap[emp.pin + '_' + vid.id];
+      if (p && p.score != null) quizzes++;
+      if (p && p.passed) passed++;
+    });
+  });
+  el(staffId).textContent = employees.length;
+  el(doneId).textContent  = passed;
+  el(rateId).textContent  = quizzes ? Math.round((passed / quizzes) * 100) + '%' : 'N/A';
+}
+
+function renderProgressTable(theadId, tbodyId, employees, videos, progressMap, token, isSup) {
+  const thead = el(theadId);
+  const hClass = isSup ? 'sup-head' : '';
+  thead.innerHTML = '<th class="' + hClass + '">Name</th><th class="' + hClass + '">Role</th>' +
+    videos.map(v => '<th class="' + hClass + '" title="' + esc(v.title) + '">' + esc(v.title.length > 13 ? v.title.slice(0,13) + '…' : v.title) + '</th>').join('');
+
+  const tbody = el(tbodyId); tbody.innerHTML = '';
+  [...employees].sort((a, b) => a.name.localeCompare(b.name)).forEach(emp => {
+    const tr = document.createElement('tr');
+    let html = '<td><strong>' + esc(emp.name) + '</strong></td><td>' + esc(emp.role) + '</td>';
+    videos.forEach(vid => {
+      const p = progressMap[emp.pin + '_' + vid.id];
+      const resetBtn = '<button class="reset-btn" onclick="doReset(\'' + token + '\',\'' + emp.pin + '\',\'' + vid.id + '\')">&#8635; Reset</button>';
+      if (!p || !p.watched) {
+        html += '<td><span class="badge badge-pending">Not started</span></td>';
+      } else if (p.passed) {
+        html += '<td><span class="badge badge-pass">&#10003; ' + p.score + '%</span>' + resetBtn + '</td>';
+      } else if (p.score != null && p.score !== '') {
+        html += '<td><span class="badge badge-fail">&#10007; ' + p.score + '%</span>' + resetBtn + '</td>';
+      } else {
+        html += '<td><span class="badge badge-watched">Watched</span>' + resetBtn + '</td>';
+      }
+    });
+    tr.innerHTML = html;
+    tbody.appendChild(tr);
+  });
+}
+
+async function doReset(token, pin, videoId) {
+  if (!confirm('Reset this training record? The staff member will need to rewatch and retake the quiz.')) return;
+  loading(true);
+  try {
+    const res = await api({ action: 'resetProgress', token, pin, videoId });
+    loading(false);
+    if (res.success) {
+      toast('Progress reset.');
+      // Refresh whichever dashboard is open
+      if (S.supervisor) await loadSupervisor();
+      else await loadAdminReport();
+    } else toast(res.error || 'Error resetting progress.');
+  } catch (e) { loading(false); toast('Connection error.'); }
+}
+
+// ════════════════════════════════════════════════════════════
+//  LOGOUT
+// ════════════════════════════════════════════════════════════
+function logout() {
+  S = { pin:'', employee:null, videos:[], currentVideo:null, quiz:null, quizAnswers:[], qIndex:0, supPassword:'', supervisor:null, supData:null, adminLocations:[], selectedLocId:null, adminData:null };
+  el('yt-frame').src = ''; pinVal = ''; updateDots();
+  el('login-error').textContent = ''; el('sup-password').value = ''; el('sup-error').textContent = '';
+  showScreen('login');
+}
+</script>
+</body>
+</html>
